@@ -10,6 +10,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
     console.log("Event: ", event);
     const parameters  = event?.pathParameters;
     const movieId = parameters?.movieId ? parseInt(parameters.movieId) : undefined;
+    const reviewerName = parameters?.reviewerName;
     const minRating = event?.queryStringParameters?.minRating;
 
     if (!movieId) {
@@ -29,6 +30,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
         ":id": movieId,
       },
     };
+
+    if (reviewerName) {
+      queryInput = {
+        ...queryInput,
+        FilterExpression: "reviewerName = :name", // Filter if reviewerName exists
+        ExpressionAttributeValues: {
+          ...queryInput.ExpressionAttributeValues,
+          ":name": reviewerName,
+        },
+      };
+    }
 
     if (minRating !== undefined && !isNaN(parseFloat(minRating))) { //If minRating is including in the request, and is a number (not a not a number) once parsed to a float
       queryInput = {
