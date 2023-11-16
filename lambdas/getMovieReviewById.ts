@@ -10,7 +10,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
     console.log("Event: ", event);
     const parameters  = event?.pathParameters;
     const movieId = parameters?.movieId ? parseInt(parameters.movieId) : undefined;
-    const includeCast = event?.queryStringParameters?.cast === "true";
 
     if (!movieId) {
       return {
@@ -22,14 +21,18 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
       };
     }
 
-    const commandOutput = await ddbDocClient.send(
-      new GetCommand({
-        TableName: process.env.TABLE_NAME,
-        Key: { movieId: movieId },
-      })
-    );
+    const queryInput = {
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: "movieId = :id", // Partition key.
+      ExpressionAttributeValues: {
+        ":id": movieId,
+      },
+    };
+
+    const commandOutput = await ddbDocClient.send(new QueryCommand(queryInput));
+
     console.log("GetCommand response: ", commandOutput);
-    if (!commandOutput.Item) {
+    if (!commandOutput.Items) {
       return {
         statusCode: 404,
         headers: {
@@ -39,25 +42,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
       };
     }
     const body = {
-      data: commandOutput.Item,
+      data: commandOutput.Items,
     };
-
-    if (includeCast) {
-      let commandInput:
-      QueryCommandInput = {
-        TableName: "MovieCast",
-        KeyConditionExpression: "movieId = :m",
-        ExpressionAttributeValues: {
-          ":m": movieId,
-        },
-      };
-
-      const castCommandOutput = await ddbDocClient.send(
-        new QueryCommand(commandInput)
-        );
-
-        body.data.includeCast = castCommandOutput.Items;
-    }
 
     // Return Response
     return {
