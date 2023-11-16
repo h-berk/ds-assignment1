@@ -10,6 +10,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
     console.log("Event: ", event);
     const parameters  = event?.pathParameters;
     const movieId = parameters?.movieId ? parseInt(parameters.movieId) : undefined;
+    const minRating = event?.queryStringParameters?.minRating;
 
     if (!movieId) {
       return {
@@ -21,13 +22,24 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
       };
     }
 
-    const queryInput = {
-      TableName: process.env.TABLE_NAME,
+    let queryInput: QueryCommandInput = {
+      TableName: process.env.TABLE_NAME!,
       KeyConditionExpression: "movieId = :id", // Partition key.
       ExpressionAttributeValues: {
         ":id": movieId,
       },
     };
+
+    if (minRating !== undefined && !isNaN(parseFloat(minRating))) { //If minRating is including in the request, and is a number (not a not a number) once parsed to a float
+      queryInput = {
+        ...queryInput,
+        FilterExpression: "reviewRating >= :rating", //Min rating so will search for reviews with a rating of greater than or equal to what's specified in the request.
+        ExpressionAttributeValues: {
+          ...queryInput.ExpressionAttributeValues,
+          ":rating": parseFloat(minRating),
+        },
+      };
+    }
 
     const commandOutput = await ddbDocClient.send(new QueryCommand(queryInput));
 
@@ -38,7 +50,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ Message: "Invalid movie Id" }),
+        body: JSON.stringify({ Message: "No reviews found" }),
       };
     }
     const body = {
