@@ -13,3 +13,5 @@ PUT /movies/{movieId}/reviews/{reviewerName} - Update the text of a review. (mov
 
 [Include screenshots from the AWS console (API Gateway service) that clearly show the deployed API ( have legible font size). ]
 ![image](https://github.com/h-berk/ds-assignment1/assets/74901973/ed7afd6e-0565-4e4b-98b1-130bbd816287)
+
+Video Demo: https://www.youtube.com/watch?v=3PYwDhzA-yk
